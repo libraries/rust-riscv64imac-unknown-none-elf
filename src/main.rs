@@ -3,7 +3,7 @@
 
 #[panic_handler]
 fn panic_handler(_: &core::panic::PanicInfo) -> ! {
-    unsafe { syscall(43, 0, 0, 0, 0, 0, 0, 93) };
+    unsafe { syscall(101, 0, 0, 0, 0, 0, 0, 93) };
     loop {}
 }
 
