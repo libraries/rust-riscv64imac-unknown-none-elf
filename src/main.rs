@@ -1,6 +1,14 @@
 #![no_main]
 #![no_std]
 
+extern crate alloc;
+use alloc::string::String;
+use alloc::vec::Vec;
+
+static mut HEAPS: [u8; 1024] = [0; 1024];
+#[global_allocator]
+static ALLOC: linked_list_allocator::LockedHeap = linked_list_allocator::LockedHeap::empty();
+
 #[panic_handler]
 fn panic_handler(_: &core::panic::PanicInfo) -> ! {
     // If the main thread panics it will terminate all your threads and end your program with code 101.
@@ -53,14 +61,17 @@ pub unsafe extern "C" fn _start() {
 
 #[no_mangle]
 unsafe extern "C" fn main(argc: u64, argv: *const *const i8) -> u64 {
+    unsafe {
+        ALLOC.lock().init(HEAPS.as_mut_ptr(), 1024);
+    }
+    let mut args = Vec::new();
     for i in 1..argc {
         let argn = core::ffi::CStr::from_ptr(argv.add(i as usize).read());
-        let argn = argn.to_bytes();
-        syscall_write(1, argn.as_ptr(), argn.len() as u64);
-        if i != argc - 1 {
-            syscall_write(1, [32].as_ptr(), 1);
-        }
+        let argn = String::from(argn.to_string_lossy());
+        args.push(argn);
     }
-    syscall_write(1, [10].as_ptr(), 1);
+    let mut data = args.join(" ");
+    data.push('\n');
+    syscall_write(1, data.as_ptr(), data.len() as u64);
     return 0;
 }
